@@ -91,7 +91,7 @@ void TIPORETURN () :
 	Exps() | BOOLEXP()
 }
 
-void SEQCOMANDOS() :
+void SEQCOMANDOS() : 
 {}
 {
 	(Comando() SEQCOMANDOSRec())
