@@ -1,0 +1,235 @@
+PARSER_BEGIN(Mojica)
+import java.io.*;
+public class Mojica {
+
+  public static void main(String args[]) throws ParseException,IOException {
+    
+    Mojica mojica = new Mojica(new FileInputStream(args[0]));
+    mojica.Prog();
+  }
+
+}
+
+PARSER_END(Mojica)
+
+
+SKIP :
+{
+  " "
+| "\t"
+| "\n"
+| "\r"
+}
+
+TOKEN :
+{
+  <VOID: "void">
+| <MAIN: "main">
+| <RETURN: "return">
+| <IF: "if">
+| <WHILE: "while">
+| <DO: "do">
+| <LBRACE:"(">
+| <RBRACE: ")">
+| <LCURLY:"{">
+| <INT:"int">
+| <BOOL:"bool">
+| <RCURLY:"}">
+| <TRUE: "true">
+| <FALSE: "false">
+| <NOT: "not">
+| <AND: "and">
+| <OR: "or">
+| <LEQ: "leq">
+| <PoV: ";">
+| <Atrib: ":=">
+| <SKIP2: "skip">
+
+
+}
+
+TOKEN :
+{
+ <OPA: ("+"|"-")>
+|
+ <OPM: ("*"|"/")> 
+|
+ <Digito: (["0"-"9"]) >
+|
+ <Digitos: (<Digito>)+ >
+|
+<LETRA: ["a"-"z","A"-"Z"]>
+|
+ <Real: (["0"-"9"])+"."(["0"-"9"])+>
+|
+<TOKEN_ID: <LETRA> ( <LETRA> | <Digito>)* ("_" (<LETRA> | <Digito>)+)*>
+|
+<facao_opcional: ("."<Digitos>)?>
+|
+<expoente_opcional: ("E" (<OPA>)? <Digitos>)?>
+
+}
+void Comando () :
+{}
+{    	
+	<SKIP2> <LBRACE> <RBRACE> <PoV>
+	|(<TOKEN_ID> ComandoLinha())
+	| (<IF> <LBRACE> BOOLEXP() <RBRACE> <LCURLY> SEQCOMANDOS() <RCURLY>)
+	| (<WHILE> <LBRACE> BOOLEXP() <RBRACE> <DO> <LCURLY> SEQCOMANDOS() <RCURLY>)
+	| <RETURN> TIPORETURN() <PoV>
+}
+
+void ComandoLinha () :
+{}
+{
+	(<Atrib> Exps() <PoV>) 
+	| (<LBRACE> LISTAEXP() <RBRACE> <PoV>)
+}
+void TIPORETURN () :
+{}
+{ 
+	Exps() | BOOLEXP()
+}
+
+void SEQCOMANDOS() :
+{}
+{
+	(Comando() SEQCOMANDOSRec())
+}
+
+void SEQCOMANDOSRec() :
+{}
+{
+	(SEQCOMANDOS())?
+}
+
+void FATOR () : 
+{}
+{
+	<TOKEN_ID> FATORLINHA() | TOKEN_numliteral() | <LBRACE> Exps() <RBRACE>
+}
+
+void FATORLINHA () :
+{}
+{
+	 (<LBRACE> LISTAEXP() <RBRACE>)?
+}
+
+void TERMO () :
+{}
+{
+	FATOR() TERMORec() 
+}
+
+void TERMORec() :
+{}
+{
+	(<OPM> FATOR() TERMORec())?
+}
+
+void TOKEN_numliteral() : 
+{}
+{
+	<Digitos> <facao_opcional> <expoente_opcional>
+}
+
+void Exps () :
+{}
+{
+	TERMO () ExpsRec()
+}
+
+void ExpsRec () :
+{}
+{
+	(<OPA> TERMO() ExpsRec())?
+}
+
+void LISTAEXP () : 
+{}
+{
+	Exps() LISTAEXPRec() 
+}
+
+void LISTAEXPRec() : 
+{}
+{
+	("," Exps() LISTAEXPRec())?
+}
+
+
+void Tipo () :
+{}
+{
+	<INT> | <BOOL>
+}
+
+void VarDecl() : 
+{}
+{
+	Tipo() <TOKEN_ID> <PoV> VarDeclRec()
+}
+
+void VarDeclRec() : 
+{}
+{
+	(VarDecl())?
+}
+
+void LISTAARG () :
+{}
+{
+	Tipo() <TOKEN_ID> LISTAARGRec() 
+}
+
+void LISTAARGRec() :
+{}
+{
+	(","  Tipo() <TOKEN_ID> LISTAARGRec())?
+}
+
+void FUNC () : 
+{}
+{
+	Tipo() <TOKEN_ID> <LBRACE> LISTAARG() <RBRACE> <LCURLY> VarDecl() SEQCOMANDOS() <RCURLY>
+}
+
+void LFUNC () :
+{}
+{
+	(FUNC() LFUNC())?
+}
+
+void PROG () :
+{}
+{
+	MAIN() LFUNC()
+}
+
+void MAIN () :
+{}
+{
+	<VOID> <MAIN> <LBRACE> <RBRACE> <LCURLY> VarDecl() SEQCOMANDOS() <RCURLY>
+}
+void BOOLEXP() :
+{}
+{
+	<TRUE> | <FALSE> | 
+	<NOT> <LBRACE> BOOLEXP() <RBRACE> | 
+	<AND> <LBRACE> BOOLEXP() <RBRACE> | 
+	<OR> <LBRACE> BOOLEXP() <RBRACE> <LBRACE> BOOLEXP() <RBRACE> |
+	<LEQ> <LBRACE> Exps() <RBRACE> <LBRACE> Exps() <RBRACE>
+}
+
+void Prog () :
+{}
+{ <VOID> <MAIN> <LBRACE> <RBRACE>
+  <LCURLY>
+	VarDecl()
+	SEQCOMANDOS()
+  <RCURLY> 
+ <EOF> 
+}
+	
+
+
